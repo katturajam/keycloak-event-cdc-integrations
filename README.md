@@ -18,8 +18,7 @@ This project sets up a development environment for Keycloak with PostgreSQL, Kaf
 This setup is ideal for developing and testing event-driven architectures with identity and access management features.
 
 ## Architecture Diagram
-<img width="494" alt="image" src="https://github.com/user-attachments/assets/2e90f2a7-91c7-48a5-8603-dea8a41d4f04" />
-
+![image](https://github.com/user-attachments/assets/e844268b-d69b-4683-9f0d-c0595b25bc27)
 
 ## Prerequiste:
 - Used python version 3.13.3
