@@ -17,6 +17,10 @@ This project sets up a development environment for Keycloak with PostgreSQL, Kaf
 
 This setup is ideal for developing and testing event-driven architectures with identity and access management features.
 
+## Architecture Diagram
+<img width="494" alt="image" src="https://github.com/user-attachments/assets/2e90f2a7-91c7-48a5-8603-dea8a41d4f04" />
+
+
 ## Prerequiste:
 - Used python version 3.13.3
 - Already keycloak compiled `kcl-event-listener-1.0.0.jar` exists in the directory `keycloak-extensions` if there is any change in the `protos` please compile it, For compilation requires
