@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package com.kcl.event.grpc;
+
+option java_package = "com.kcl.event.grpc";
+option java_multiple_files = true;
+
+// gRPC service definition
+service EventService {
+  // Bi-directional streaming RPC method
+  rpc StreamEvent(stream EventRequest) returns (EventResponse);
+}
+
+// Request message to send a Keycloak event
+message EventRequest {
+  // Type of event, e.g., "USER_EVENT" or "ADMIN_EVENT"
+  string event_type = 1;
+
+  // Realm in which the event occurred
+  string realm_id = 2;
+
+  // Client that triggered the event
+  string client_id = 3;
+
+  // User ID involved in the event (optional for admin events)
+  string user_id = 4;
+
+  // IP address from where the event originated
+  string ip_address = 5;
+
+  // JSON payload representing the full event data
+  string payload_json = 6;
+}
+
+// Response message from server (can be enhanced later)
+message EventResponse {
+  string status = 1; // e.g., "ACK", "ERROR", "RECEIVED"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "keycloak-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "pg-server",
+    "database.port": "5432",
+    "database.user": "kcluser",
+    "database.password": "kcl@123",
+    "database.dbname": "keycloak",
+    "database.server.name": "keycloak-server",
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_keycloak_slot",
+    "publication.name": "debezium_keycloak_pub",
+    "table.include.list": "public.user_entity, public.org, public.realm",
+    "topic.prefix": "kcl"
+  }
+}

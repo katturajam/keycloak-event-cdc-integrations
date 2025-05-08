@@ -1,0 +1,116 @@
+volumes:
+  postgres-data:
+  pgadmin-data:
+  
+services:
+  pg-server:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: kcluser
+      POSTGRES_PASSWORD: kcl@123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kcluser -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak-server:
+    image: quay.io/keycloak/keycloak:latest
+    entrypoint: ["/bin/bash", "/entrypoint.sh", "start-dev"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      pg-server:
+        condition: service_healthy
+      kcl-event-grpc-server:
+        condition: service_started
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: pg-server
+      KC_DB_USERNAME: kcluser
+      KC_DB_PASSWORD: kcl@123
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      GRPC_HOST: kcl-event-grpc-server
+      GRPC_PORT: 50051
+      WEBHOOK_URL: https://webhook.site/4e00d562-c9e7-4942-96b1-b13d9999e522
+    volumes:
+      - ./keycloak-extensions/target:/opt/keycloak-extensions/target
+      - ./keycloak-extensions/entrypoint.sh:/entrypoint.sh
+  
+  kcl-event-grpc-server:
+    build: ./kcl-event-grpc-server
+    ports:
+      - "50051:50051"
+    restart: unless-stopped
+
+  # DB Admin UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    depends_on:
+      pg-server:
+        condition: service_healthy
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+  
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_EXTERNAL://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_EXTERNAL://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  
+  # Kafka UI
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    ports:
+      - "9000:9000"
+    depends_on:
+      kafka:
+        condition: service_started
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+      JVM_OPTS: "-Xms32M -Xmx64M"
+
+  # Debezium
+  connect:
+    image: debezium/connect:2.6
+    depends_on:
+      pg-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_status
+    ports:
+      - "8083:8083"
